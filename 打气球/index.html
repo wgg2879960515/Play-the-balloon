@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.min.css"/>
+		<style type="text/css">
+			* {
+				margin: 0;
+				padding: 0;
+			}
+			body{
+				background-image: url(img/58c62bd4e65fe.jpg);
+			
+			}
+			
+			.balloon {
+				position: absolute;
+				height: 160px;
+				width: 160px;
+				background-color: #faf9f9;
+				border-radius: 160px 160px 64px 160px;
+				transform: rotate(45deg);
+				/*box-shadow: -8px -8px 80px 4px royalblue inset;*/
+			}
+			
+			.span {
+				position: absolute;
+				bottom: 0;
+				right: 0;
+				/*content: '';*/
+				border: 8px solid transparent;
+				border-right-color: royalblue;
+				transform: rotate(45deg);
+				border-radius: 50%;
+			}
+			.glyphicon{
+				margin: 250px 580px;
+				font-size: 250px;
+				color: #67B168;
+			}
+			#getScore{
+				position: absolute;
+				font-size: 50px;
+				color: #67B168;
+				opacity: 0;
+				top:350px;
+				left:650px;
+			}
+			.glyphicon:hover{
+				cursor:pointer
+			}
+			#score{
+				position: absolute;
+				top: 10px;
+				right: 20px;
+				color: #D58512;
+				font-weight: 900;
+				user-select:none;
+				display: none;
+			}
+			#second{
+				position: absolute;
+				top: 10px;
+				left: 20px;
+				color: #D58512;
+				font-weight: 900;
+				user-select:none;
+				display: none;
+			}
+			
+		</style>
+		<script src="js/animate.js" type="text/javascript" charset="utf-8"></script>
+	</head>
+
+	<body>
+		
+		<span class="glyphicon glyphicon-play-circle">
+			
+		</span>
+		<p id="second">剩余生产时间：<span id="secondSpan">30</span>S</p>
+		<p id="score" >当前得分：<span id="scoreSpan">0</span>分</p>
+		<span id="getScore">得分：</span>
+		<script type="text/javascript">
+					/*
+					 * 
+					 1.生成气球
+					 	创建节点
+					 	排列在屏幕下方
+					 	左右随机排列
+					 2.运动起来
+					 	获取气球
+					 	每个气球速度不一样
+					 	定时器
+					 3.点击气球
+					 	鼠标点击事件
+					 	事件委托 e.target获取点击的那个对象
+					 	删除节点(不能隐藏)
+					 		找爸爸删除节点
+					 	数组查找删除对应项
+					 	
+					 4.爆炸动画 this
+					 	气球的加速运动
+					 	气球宽度高度减小
+					 	气球足够小之后删除节点对象
+
+					 */
+
+		
+			var num = 0; //生成的气球数量
+			var score = 0;//记录分数
+			var stopInitFlag = 0;//用来判断到没到时间，到时间就不要再生产气球了
+			var wW = window.innerWidth;
+			var wH = window.innerHeight;
+			var time = 30;//持续的时间
+			var bz = 160; //气球的size
+			var Balloons = []; //用来储存生成的每个节点，缓存池
+			var timer = null;
+			var tag = 0;
+			var startSpan = document.getElementsByClassName('glyphicon')[0];
+			
+			
+		 
+			 	
+			  //点击开始
+			  /*点击按钮隐藏,计分计时显示*/
+			startSpan.addEventListener('click',function(){
+				animate(startSpan,{'opacity':0},function(){
+					hide(startSpan); 
+				})
+				var p1 = document.getElementById('score');
+				var p2 = document.getElementById('second');
+				show(p1);
+				show(p2);
+				init(); //进入页面会生成10个
+			},false);
+			
+			//实时获取当前分数显示在右上角
+			function showScore(score){//显示分数
+				 var scoreSpan = document.getElementById('scoreSpan');
+				  scoreSpan .innerHTML = score;
+			}
+			
+			//实时获取剩余秒数显示在左上角
+			function showSecond(second){//显示还有多少秒
+				var secondSpan = document.getElementById('secondSpan');
+				   second<=0?second=0:second;
+				   secondSpan .innerHTML = second;
+			}
+		
+		    //如果游戏结束,页面没气球显示您的分数
+			function hideSS(){
+			    var balloon = document.getElementsByClassName('balloon');
+			   // console.log(balloon);
+			    if(balloon.length == 0&&(time-stopInitFlag)<=0)
+			    {
+				    var p1 = document.getElementById('score');
+				    var p2 = document.getElementById('second');
+				   	hide( p1);
+				   	hide(  p2);
+				   	var getScore = document.getElementById('getScore');
+					 animate(getScore,{'opacity':100},function(){
+					    	 getScore.innerHTML = "得分:"+(score)+"分";
+					    })
+			    }
+			   
+			}
+			
+			//初始化气球，其实是往缓冲池里面添加气球
+			function init() 
+			{
+				//~~经过位运算的都会自动变成整数，性能比paseint号
+				stopInitFlag++;//没生产一批气球，flag++，如果大于设置的时间就把生产气球num为0
+				showSecond(time-stopInitFlag);
+
+				Balloons.length > 15 ? num = 0 : num = ~~(Math.random() * 7);//最多页面只能有15个气球,随机生产 1-5个
+				if(stopInitFlag >= time){
+					num = 0;
+				}
+				var fragment = document.createDocumentFragment(); //节点文档，这样不用循环添加节点
+				
+				for(var i = 0; i < num; i++){
+					var randomNum = ~~(Math.random() * wW) - 160; //获取随机数，用来把气球排列到屏幕下方不同位置
+					var colorCurrent = rgb();//颜色数组随机获取一个颜色值
+					var oBallon = document.createElement('div');
+					var oSpan = document.createElement('span');
+					oBallon.className = "balloon";
+					oSpan.className = "span";
+					oBallon.appendChild(oSpan);
+					oBallon.style.boxShadow = "-8px -8px 80px 4px " + colorCurrent + " inset";
+					oSpan.style.borderRightColor = colorCurrent;
+					oBallon.style.top = wH+ 160 + "px";
+					oBallon.style.left = Math.max(randomNum, 0) + "px";
+					oBallon.speed = (~~(Math.random() * 8) + 1); //获取一个随机数，把他赋值为一个气球的属性speed
+					fragment.appendChild(oBallon);
+					Balloons.push(oBallon);                    //追加进缓冲池
+				}
+				document.body.appendChild(fragment); //提高性能
+				initTimer = setTimeout(init, 1000);
+			}
+			
+			//下面三个函数产生随机rgb()
+			function randomString(){
+					return randomNumber()+','+randomNumber()+','+randomNumber()+'';
+				}
+			function randomNumber(){
+					return ~~(Math.random()*255);
+				}
+			function rgb(){
+					return "rgb("+randomString().split(',')[0]+","+randomString().split(',')[1]+","+randomString().split(',')[2]+")";
+				}
+			
+			move(deleteBalloon);  //回掉函数
+			
+			//遍历缓冲池，里面的气球根据不同的速度运动
+			function move(callback) //运动起来
+			{
+				for(var i = 0, len = Balloons.length; i < len; i++) { //遍历节点获取不同的speed
+					if(Balloons[i])//操作缓冲池
+					{
+						Balloons[i].style.top = Balloons[i].offsetTop - Balloons[i].speed + 'px';
+						if(parseInt(Balloons[i].offsetTop) <= -160) //如果没点击，他飞到了屏幕上方那么就自动删除
+						{
+							tag = i;
+							callback && callback();
+							clearTimeout(moveTimer);
+						}
+					}
+
+				}
+				moveTimer = setTimeout("move(deleteBalloon)", 1000 / 60);
+			}
+			
+			//move的回掉函数，没点击，他飞到了屏幕上方那么就自动删除
+			function deleteBalloon() {
+				Balloons[tag].parentNode.removeChild(Balloons[tag]); //但此时缓冲池里面的气球还没有清掉
+				Balloons.splice(Balloons.lastIndexOf(Balloons[tag]), 1); //缓冲池里面删除掉点击的对
+				hideSS();                                              //当前页面没有气球积分时间消失
+			} //作为move函数的回调函数，删除没点击飞到屏幕上方的气球
+			
+			//点击气球，获取是那个气球，撒气动画，删除节点
+			document.body.addEventListener('click', function(e) {
+				if(e.target.className.toLowerCase() === 'balloon') {
+					//调用boom函数，这是一个气球点击后的动画
+					boom.call(e.target, function() {
+						if(e.target.parentNode) {
+							e.target.parentNode.removeChild(e.target); //但此时缓冲池里面的气球还没有清掉
+							Balloons.splice(Balloons.lastIndexOf(e.target), 1); //缓冲池里面删除掉点击的对象
+							hideSS();//当前页面没有气球积分时间消失
+						}
+
+					}); //call()函数是为了使e.target作为boom函数的this，function是一个回掉函数
+						//更改对象的内部指针，即改变对象的this指向的内容
+				}
+			}, false);
+
+			
+            //撒气动画,气球的加速运动,气球宽度高度减小,气球足够小之后删除节点对象
+			function boom(callback) { //callback是一个回掉函数
+				score++;
+				showScore(score);//撒气说明点击了，加一分，用score记录
+				this.timer = setInterval(function() {
+					
+					this.speed++;
+					this.style.width = this.offsetWidth - this.speed + 'px';
+					this.style.height = this.offsetHeight - this.speed + 'px';
+					if(this.offsetHeight < 10) {
+						clearInterval(this.timer);
+						callback && callback(); //这里必须用回掉函数，因为这里判断删除节点的话，会使对象本身的定时器消失，后面无法运行
+
+					}
+				}.bind(this), 1000 / 500);
+			}
+			
+			
+			//显示obj
+		    function show(obj){
+		    	obj.style.display = 'block';
+		    }
+		    
+		    //隐藏obj
+		    function hide(obj){
+		    	obj.style.display = 'none';
+		    }
+
+		</script>
+	</body>
+
+</html>
